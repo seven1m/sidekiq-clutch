@@ -3,6 +3,9 @@ module Sidekiq
     class JobWrapper
       include Sidekiq::Worker
 
+      # 22 days - how long a Sidekiq job can live with exponential backoff
+      RESULT_KEY_EXPIRATION_DURATION = 22 * 24 * 60 * 60
+
       def perform(bid, job_class, args, last_result_key, current_result_key)
         job = Object.const_get(job_class).new
         job.previous_results = Sidekiq.redis { |c| c.lrange(last_result_key, 0, -1) }.map do |r|

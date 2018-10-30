@@ -44,39 +44,12 @@ module Sidekiq
       batch.on(:success, Sidekiq::Clutch, 'jobs' => jobs_queue.dup, 'result_key' => step['result_key'])
       batch.jobs do
         if step['series']
-          enqueue_series_job(step)
+          series_step(step)
         elsif step['parallel']
-          enqueue_parallel_jobs(step)
+          parallel_step(step)
         else
           raise "unknown step: #{step.inspect}"
         end
-      end
-    end
-
-    def enqueue_series_job(step)
-      (klass, params) = step['series']
-      job_options = Object.const_get(klass).sidekiq_options
-      options = {
-        'class'     => JobWrapper,
-        'queue'     => queue || job_options['queue'],
-        'args'      => [batch.bid, klass, params, current_result_key, step['result_key']],
-        'retry'     => job_options['retry'],
-        'backtrace' => job_options['backtrace']
-      }
-      Sidekiq::Client.push(options)
-    end
-
-    def enqueue_parallel_jobs(step)
-      step['parallel'].each do |(klass, params)|
-        job_options = Object.const_get(klass).sidekiq_options
-        options = {
-          'class'     => JobWrapper,
-          'queue'     => queue || job_options['queue'],
-          'args'      => [batch.bid, klass, params, current_result_key, step['result_key']],
-          'retry'     => job_options['retry'],
-          'backtrace' => job_options['backtrace']
-        }
-        Sidekiq::Client.push(options)
       end
     end
 
@@ -91,6 +64,31 @@ module Sidekiq
       service.engage
     end
 
+    private
+
+    def series_step(step)
+      (klass, params) = step['series']
+      enqueue_job(klass, params, step['result_key'])
+    end
+
+    def parallel_step(step)
+      step['parallel'].each do |(klass, params)|
+        enqueue_job(klass, params, step['result_key'])
+      end
+    end
+
+    def enqueue_job(klass, params, result_key)
+      job_options = Object.const_get(klass).sidekiq_options
+      options = {
+        'class'     => JobWrapper,
+        'queue'     => queue || job_options['queue'],
+        'args'      => [batch.bid, klass, params, current_result_key, result_key],
+        'retry'     => job_options['retry'],
+        'backtrace' => job_options['backtrace']
+      }
+      Sidekiq::Client.push(options)
+    end
+
     def clean_up_result_keys(key_base)
       Sidekiq.redis do |redis|
         redis.keys(key_base + '*').each do |key|
@@ -98,8 +96,5 @@ module Sidekiq
         end
       end
     end
-
-    # 22 days - how long a Sidekiq job can live with exponential backoff
-    RESULT_KEY_EXPIRATION_DURATION = 22 * 24 * 60 * 60
   end
 end
