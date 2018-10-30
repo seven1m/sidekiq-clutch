@@ -13,55 +13,55 @@ RSpec.describe Sidekiq::Clutch do
   end
 
   it 'enqueues jobs in order, passing results along to the next set each time' do
-    subject.jobs << [FakeJob1, 1]
+    subject.jobs << [Job1, 1]
     subject.parallel do
-      subject.jobs << [FakeJob2, 2, 'two']
-      subject.jobs << [FakeJob2, 22, 222]
+      subject.jobs << [Job2, 2, 'two']
+      subject.jobs << [Job2, 22, 222]
     end
-    subject.jobs << [FakeJob3, 3, 4, 5]
+    subject.jobs << [Job3, 3, 4, 5]
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
     expect(log_results).to eq(
       [
-        'FakeJob1#perform was called with 1',
-        'FakeJob2#perform was called with [2, "two"] and result ["result from FakeJob1"]',
-        'FakeJob2#perform was called with [22, 222] and result ["result from FakeJob1"]',
-        'FakeJob3#perform was called with [3, 4, 5] and result ["result from FakeJob2", "result from FakeJob2"]'
+        'Job1#perform was called with 1',
+        'Job2#perform was called with [2, "two"] and result ["result from Job1"]',
+        'Job2#perform was called with [22, 222] and result ["result from Job1"]',
+        'Job3#perform was called with [3, 4, 5] and result ["result from Job2", "result from Job2"]'
       ]
     )
   end
 
   it 'can nest itself' do
-    subject.jobs << [FakeJob1, 1]
+    subject.jobs << [Job1, 1]
     subject.parallel do
-      subject.jobs << [FakeJob2, 2, 'two']
-      subject.jobs << [FakeNestedJob]
+      subject.jobs << [Job2, 2, 'two']
+      subject.jobs << [NestedJob]
     end
-    subject.jobs << [FakeJob3, 3, 4, 5]
+    subject.jobs << [Job3, 3, 4, 5]
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
     expect(log_results).to eq(
       [
-        'FakeJob1#perform was called with 1',
-        'FakeJob2#perform was called with [2, "two"] and result ["result from FakeJob1"]',
-        'FakeNestedJob#perform was called',
-        'FakeJob1#perform was called with 10',
-        'FakeJob2#perform was called with [10, "ten"] and result ["result from FakeJob1"]',
-        'FakeJob2#perform was called with [10, "ten"] and result ["result from FakeJob1"]',
-        'FakeJob3#perform was called with [3, 4, 5] and result ["result from FakeJob2", "result from FakeNestedJob"]'
+        'Job1#perform was called with 1',
+        'Job2#perform was called with [2, "two"] and result ["result from Job1"]',
+        'NestedJob#perform was called',
+        'Job1#perform was called with 10',
+        'Job2#perform was called with [10, "ten"] and result ["result from Job1"]',
+        'Job2#perform was called with [10, "ten"] and result ["result from Job1"]',
+        'Job3#perform was called with [3, 4, 5] and result ["result from Job2", "result from NestedJob"]'
       ]
     )
   end
 
   it 'accepts a bare job class with no args' do
-    subject.jobs << FakeNestedJob
+    subject.jobs << NestedJob
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
     expect(log_results).not_to be_empty
   end
 
   it 'cleans up result keys' do
-    subject.jobs << [FakeJob1, 1]
+    subject.jobs << [Job1, 1]
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
     keys = subject.jobs.raw.map { |j| j['result_key'] }
@@ -79,7 +79,7 @@ RSpec.describe Sidekiq::Clutch do
   it 'can push to any queue' do
     expect_any_instance_of(Sidekiq::Batch).to receive(:callback_queue=).with('critical').at_least(:once)
     subject.queue = :critical
-    subject.jobs << [FakeJob1, 1]
+    subject.jobs << [Job1, 1]
     subject.engage
     expect(Sidekiq::Worker.jobs.first).to include(
       'class' => 'Sidekiq::Clutch::JobWrapper',
@@ -88,7 +88,7 @@ RSpec.describe Sidekiq::Clutch do
     Sidekiq::Batch.drain_all_and_run_callbacks
     subject.clear
     subject.parallel do
-      subject.jobs << [FakeJob2, 1, 2]
+      subject.jobs << [Job2, 1, 2]
     end
     subject.engage
     expect(Sidekiq::Worker.jobs.first).to include(
@@ -99,7 +99,7 @@ RSpec.describe Sidekiq::Clutch do
   end
 
   it 'does not always override job class queue' do
-    subject.jobs << [FakeJob2, 1, 2]
+    subject.jobs << [Job2, 1, 2]
     subject.engage
     expect(Sidekiq::Worker.jobs.first).to include(
       'class' => 'Sidekiq::Clutch::JobWrapper',
@@ -108,7 +108,7 @@ RSpec.describe Sidekiq::Clutch do
     Sidekiq::Batch.drain_all_and_run_callbacks
     subject.clear
     subject.parallel do
-      subject.jobs << [FakeJob2, 1, 2]
+      subject.jobs << [Job2, 1, 2]
     end
     subject.engage
     expect(Sidekiq::Worker.jobs.first).to include(
@@ -119,20 +119,20 @@ RSpec.describe Sidekiq::Clutch do
   end
 
   it 'does not execute the next step in series if a job failed' do
-    expect(FakeJob1).not_to receive(:new)
-    subject.jobs << FakeFailingJob
-    subject.jobs << FakeJob1
+    expect(Job1).not_to receive(:new)
+    subject.jobs << FailingJob
+    subject.jobs << Job1
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
   end
 
-  let(:failure_handler) { double('FakeFailureHandlerJob') }
+  let(:failure_handler) { double('FailureHandlerJob') }
 
   it 'calls on_failure when a failure occurs' do
-    expect(FakeFailureHandlerJob).to receive(:new).and_return(failure_handler)
+    expect(FailureHandlerJob).to receive(:new).and_return(failure_handler)
     expect(failure_handler).to receive(:perform).with(Sidekiq::Batch::Status)
-    subject.on_failure = FakeFailureHandlerJob
-    subject.jobs << FakeFailingJob
+    subject.on_failure = FailureHandlerJob
+    subject.jobs << FailingJob
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
   end

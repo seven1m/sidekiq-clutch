@@ -1,9 +1,9 @@
 require 'bundler/setup'
 require 'sidekiq/clutch'
 
-require_relative 'support/sidekiq_batch_fake'
+require_relative 'support/sidekiq_batch'
 require_relative 'support/sidekiq_worker_extension'
-require_relative 'support/fake_jobs'
+require_relative 'support/jobs'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

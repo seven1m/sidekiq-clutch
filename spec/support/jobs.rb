@@ -1,14 +1,14 @@
-class FakeJob1
+class Job1
   include Sidekiq::Worker
   include Sidekiq::Clutch::Worker
 
   def perform(x)
     log_job "#{self.class.name}#perform was called with #{x.inspect}"
-    'result from FakeJob1'
+    'result from Job1'
   end
 end
 
-class FakeJob2
+class Job2
   include Sidekiq::Worker
   include Sidekiq::Clutch::Worker
 
@@ -16,38 +16,38 @@ class FakeJob2
 
   def perform(x, y)
     log_job "#{self.class.name}#perform was called with #{[x, y].inspect} and result #{previous_results.inspect}"
-    'result from FakeJob2'
+    'result from Job2'
   end
 end
 
-class FakeJob3
+class Job3
   include Sidekiq::Worker
   include Sidekiq::Clutch::Worker
 
   def perform(x, y, z)
     log_job "#{self.class.name}#perform was called with #{[x, y, z].inspect} and result #{previous_results.inspect}"
-    'result from FakeJob3'
+    'result from Job3'
   end
 end
 
-class FakeNestedJob
+class NestedJob
   include Sidekiq::Worker
   include Sidekiq::Clutch::Worker
 
   def perform
     log_job "#{self.class.name}#perform was called"
     clutch = Sidekiq::Clutch.new(batch)
-    clutch.jobs << [FakeJob1, 10]
+    clutch.jobs << [Job1, 10]
     clutch.parallel do
-      clutch.jobs << [FakeJob2, 10, 'ten']
-      clutch.jobs << [FakeJob2, 10, 'ten']
+      clutch.jobs << [Job2, 10, 'ten']
+      clutch.jobs << [Job2, 10, 'ten']
     end
     clutch.engage
-    'result from FakeNestedJob'
+    'result from NestedJob'
   end
 end
 
-class FakeFailingJob
+class FailingJob
   include Sidekiq::Worker
   include Sidekiq::Clutch::Worker
 
@@ -56,7 +56,7 @@ class FakeFailingJob
   end
 end
 
-class FakeFailureHandlerJob
+class FailureHandlerJob
   include Sidekiq::Worker
   include Sidekiq::Clutch::Worker
 
