@@ -12,7 +12,7 @@ module Sidekiq
 
     attr_reader :batch, :queue
 
-    attr_accessor :current_result_key
+    attr_accessor :current_result_key, :on_failure
 
     def parallel
       @parallel = true
@@ -42,6 +42,7 @@ module Sidekiq
       return if step.nil?
       batch.callback_queue = queue if queue
       batch.on(:success, Sidekiq::Clutch, 'jobs' => jobs_queue.dup, 'result_key' => step['result_key'])
+      batch.on(:complete, Sidekiq::Clutch, 'on_failure' => on_failure&.name)
       batch.jobs do
         if step['series']
           series_step(step)
@@ -62,6 +63,12 @@ module Sidekiq
       service.jobs.raw = options['jobs']
       service.current_result_key = options['result_key']
       service.engage
+    end
+
+    def on_complete(status, options)
+      return if status.failures.zero?
+      return if options['on_failure'].nil?
+      Object.const_get(options['on_failure']).new.perform(status)
     end
 
     private

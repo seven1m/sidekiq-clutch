@@ -5,7 +5,11 @@ RSpec.describe Sidekiq::Clutch do
   let(:batch_double) { double('Sidekiq::Batch') }
 
   before do
-    Sidekiq.redis { |c| c.del('spec_results') }
+    Sidekiq.redis { |c| c.del('log_results') }
+  end
+
+  def log_results
+    Sidekiq.redis { |c| c.lrange('log_results', 0, -1) }
   end
 
   it 'enqueues jobs in order, passing results along to the next set each time' do
@@ -17,8 +21,7 @@ RSpec.describe Sidekiq::Clutch do
     subject.jobs << [FakeJob3, 3, 4, 5]
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
-    results = Sidekiq.redis { |c| c.lrange('spec_results', 0, -1) }
-    expect(results).to eq(
+    expect(log_results).to eq(
       [
         'FakeJob1#perform was called with 1',
         'FakeJob2#perform was called with [2, "two"] and result ["result from FakeJob1"]',
@@ -37,8 +40,7 @@ RSpec.describe Sidekiq::Clutch do
     subject.jobs << [FakeJob3, 3, 4, 5]
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
-    results = Sidekiq.redis { |c| c.lrange('spec_results', 0, -1) }
-    expect(results).to eq(
+    expect(log_results).to eq(
       [
         'FakeJob1#perform was called with 1',
         'FakeJob2#perform was called with [2, "two"] and result ["result from FakeJob1"]',
@@ -55,8 +57,7 @@ RSpec.describe Sidekiq::Clutch do
     subject.jobs << FakeNestedJob
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
-    results = Sidekiq.redis { |c| c.lrange('spec_results', 0, -1) }
-    expect(results).not_to be_empty
+    expect(log_results).not_to be_empty
   end
 
   it 'cleans up result keys' do
@@ -114,6 +115,25 @@ RSpec.describe Sidekiq::Clutch do
       'class' => 'Sidekiq::Clutch::JobWrapper',
       'queue' => 'low'
     )
+    Sidekiq::Batch.drain_all_and_run_callbacks
+  end
+
+  it 'does not execute the next step in series if a job failed' do
+    expect(FakeJob1).not_to receive(:new)
+    subject.jobs << FakeFailingJob
+    subject.jobs << FakeJob1
+    subject.engage
+    Sidekiq::Batch.drain_all_and_run_callbacks
+  end
+
+  let(:failure_handler) { double('FakeFailureHandlerJob') }
+
+  it 'calls on_failure when a failure occurs' do
+    expect(FakeFailureHandlerJob).to receive(:new).and_return(failure_handler)
+    expect(failure_handler).to receive(:perform).with(Sidekiq::Batch::Status)
+    subject.on_failure = FakeFailureHandlerJob
+    subject.jobs << FakeFailingJob
+    subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
   end
 end

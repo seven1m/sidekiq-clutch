@@ -93,6 +93,28 @@ containing all the results from all the parallel jobs.
 
 Note: results are always in an array, even if there was only a single prior job run in series.
 
+## Handling Failure
+
+When jobs fail, Sidekiq will retry them as usual. See [here](https://github.com/mperham/sidekiq/wiki/Error-Handling) for details on how Sidekiq handles job failure and retries.
+
+Jobs next in a series will **not** be enqueued by Clutch as long as a prior job is failing.
+
+If you wish to do something when a job in your batch fails, set `on_failure` like this:
+
+```ruby
+clutch = Sidekiq::Clutch.new
+clutch.on_failure = MyFailureHandlerJob
+# add jobs here...
+clutch.engage
+```
+
+`MyFailureHandlerJob.new.perform(status)` will be called if one of the following scenarios occur:
+
+1. A job in series fails.
+2. One or more jobs in parallel fail and the rest complete.
+
+Note: retries will continue to occur even after your failure handler job is called.
+
 ## Nested Batches
 
 You can nest Clutch instances too!

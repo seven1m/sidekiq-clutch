@@ -46,3 +46,21 @@ class FakeNestedJob
     'result from FakeNestedJob'
   end
 end
+
+class FakeFailingJob
+  include Sidekiq::Worker
+  include Sidekiq::Clutch::Worker
+
+  def perform
+    raise 'this job never succeeds'
+  end
+end
+
+class FakeFailureHandlerJob
+  include Sidekiq::Worker
+  include Sidekiq::Clutch::Worker
+
+  def perform(status)
+    log_job "#{self.class.name}#perform was called with #{status.inspect}"
+  end
+end
