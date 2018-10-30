@@ -91,7 +91,9 @@ end
 If the previous step in a series was a batch of parallel jobs, then `previous_results` will be an array
 containing all the results from all the parallel jobs.
 
-Note: results are always in an array, even if there was only a single prior job run in series.
+Some notes:
+- Results are always in an array, even if there was only a single prior job run in series.
+- Results are serialized as JSON and temporarily stored in Redis, so only return small-ish values.
 
 ## Handling Failure
 
