@@ -68,4 +68,31 @@ RSpec.describe Sidekiq::Clutch do
       expect(Sidekiq.redis { |c| c.exists(key) }).to eq(false), "#{key} exists"
     end
   end
+
+  it 'does nothing if no jobs are specified' do
+    subject.queue = 'critical'
+    expect { subject.engage }.not_to raise_error
+    expect(Sidekiq::Worker.jobs).to be_empty
+  end
+
+  it 'can push to any queue' do
+    expect_any_instance_of(Sidekiq::Batch).to receive(:callback_queue=).with('critical').at_least(:once)
+    subject.queue = :critical
+    subject.jobs << [FakeJob1, 1]
+    subject.engage
+    expect(Sidekiq::Worker.jobs.first).to include(
+      'class' => 'Sidekiq::Clutch::JobWrapper',
+      'queue' => 'critical'
+    )
+    Sidekiq::Batch.drain_all_and_run_callbacks
+    subject.clear
+    subject.parallel do
+      subject.jobs << [FakeJob2, 1, 2]
+    end
+    subject.engage
+    expect(Sidekiq::Worker.jobs.first).to include(
+      'class' => 'Sidekiq::Clutch::JobWrapper',
+      'queue' => 'critical'
+    )
+  end
 end

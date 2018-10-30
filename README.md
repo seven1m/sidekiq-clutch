@@ -116,6 +116,17 @@ clutch.jobs << MyFinalizerJob
 clutch.engage
 ```
 
+## Setting the Queue
+
+You can set the callback queue (overriding any queue specified in the job class itself) by setting it on Clutch, like this:
+
+```ruby
+clutch = Sidekiq::Clutch.new
+clutch.queue = 'critical'
+# add jobs here...
+clutch.engage
+```
+
 ## Note about the sidekiq-batch gem
 
 I tested this with the third-party gem [sidekiq-batch](https://github.com/breamware/sidekiq-batch), which

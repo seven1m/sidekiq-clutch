@@ -18,7 +18,7 @@ module Sidekiq
 
       def <<((klass, *params))
         if @service.parallel?
-          @jobs << { 'parallel' => [], 'result_key' => next_result_key } unless @jobs.last['parallel']
+          @jobs << { 'parallel' => [], 'result_key' => next_result_key } unless @jobs.last && @jobs.last['parallel']
           @jobs.last['parallel'] << [klass, params]
         else
           @jobs << { 'series' => [klass, params], 'result_key' => next_result_key }
