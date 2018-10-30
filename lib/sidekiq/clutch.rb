@@ -8,12 +8,11 @@ module Sidekiq
   class Clutch
     def initialize(batch = nil)
       @batch = batch || Sidekiq::Batch.new
-      @queue = 'default'
     end
 
-    attr_reader :batch
+    attr_reader :batch, :queue
 
-    attr_accessor :current_result_key, :queue
+    attr_accessor :current_result_key
 
     def parallel
       @parallel = true
@@ -33,11 +32,15 @@ module Sidekiq
       @jobs = nil
     end
 
+    def queue=(q)
+      @queue = q && q.to_s
+    end
+
     def engage
       jobs_queue = jobs.raw.dup
       step = jobs_queue.shift
       return if step.nil?
-      batch.callback_queue = queue.to_s
+      batch.callback_queue = queue if queue
       batch.on(:success, Sidekiq::Clutch, 'jobs' => jobs_queue.dup, 'result_key' => step['result_key'])
       batch.jobs do
         if step['series']
@@ -52,20 +55,26 @@ module Sidekiq
 
     def enqueue_series_job(step)
       (klass, params) = step['series']
+      job_options = Object.const_get(klass).sidekiq_options
       options = {
-        'class' => JobWrapper,
-        'queue' => queue.to_s,
-        'args'  => [batch.bid, klass, params, current_result_key, step['result_key']]
+        'class'     => JobWrapper,
+        'queue'     => queue || job_options['queue'],
+        'args'      => [batch.bid, klass, params, current_result_key, step['result_key']],
+        'retry'     => job_options['retry'],
+        'backtrace' => job_options['backtrace']
       }
       Sidekiq::Client.push(options)
     end
 
     def enqueue_parallel_jobs(step)
       step['parallel'].each do |(klass, params)|
+        job_options = Object.const_get(klass).sidekiq_options
         options = {
-          'class' => JobWrapper,
-          'queue' => queue.to_s,
-          'args'  => [batch.bid, klass, params, current_result_key, step['result_key']]
+          'class'     => JobWrapper,
+          'queue'     => queue || job_options['queue'],
+          'args'      => [batch.bid, klass, params, current_result_key, step['result_key']],
+          'retry'     => job_options['retry'],
+          'backtrace' => job_options['backtrace']
         }
         Sidekiq::Client.push(options)
       end

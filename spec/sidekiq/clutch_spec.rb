@@ -94,5 +94,26 @@ RSpec.describe Sidekiq::Clutch do
       'class' => 'Sidekiq::Clutch::JobWrapper',
       'queue' => 'critical'
     )
+    Sidekiq::Batch.drain_all_and_run_callbacks
+  end
+
+  it 'does not always override job class queue' do
+    subject.jobs << [FakeJob2, 1, 2]
+    subject.engage
+    expect(Sidekiq::Worker.jobs.first).to include(
+      'class' => 'Sidekiq::Clutch::JobWrapper',
+      'queue' => 'low'
+    )
+    Sidekiq::Batch.drain_all_and_run_callbacks
+    subject.clear
+    subject.parallel do
+      subject.jobs << [FakeJob2, 1, 2]
+    end
+    subject.engage
+    expect(Sidekiq::Worker.jobs.first).to include(
+      'class' => 'Sidekiq::Clutch::JobWrapper',
+      'queue' => 'low'
+    )
+    Sidekiq::Batch.drain_all_and_run_callbacks
   end
 end

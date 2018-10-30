@@ -12,6 +12,8 @@ class FakeJob2
   include Sidekiq::Worker
   include Sidekiq::Clutch::Worker
 
+  sidekiq_options queue: 'low'
+
   def perform(x, y)
     log_job "#{self.class.name}#perform was called with #{[x, y].inspect} and result #{previous_results.inspect}"
     'result from FakeJob2'
