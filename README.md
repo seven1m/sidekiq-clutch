@@ -118,7 +118,7 @@ clutch.engage
 
 ## Setting the Queue
 
-You can set the callback queue (overriding any queue specified in the job class itself) by setting it on Clutch, like this:
+You can set the queue for jobs (overriding any queue specified in the job class itself) and callbacks by setting it on Clutch, like this:
 
 ```ruby
 clutch = Sidekiq::Clutch.new
