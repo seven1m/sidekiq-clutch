@@ -54,9 +54,16 @@ clutch.jobs << MyFinalizerJob
 clutch.engage
 ```
 
+The jobs will run in this order:
+
+* First, `MyJob1` will run.
+* Second, `MyJob2` with args `'arg1'` and `'arg2'` will run.
+* Third, in parallel, three jobs of `MyJob3`, each with args `3`, `4`, and `5` will run.
+* Last, the `MyFinalizerJob` will run.
+
 ## Results from Prior Jobs
 
-You can access the results from a previous job in a series, or multiple jobs that ran in parallel, using the `previous_results` method:
+You can access the results from the previous job in the series using the `previous_results` method:
 
 ```ruby
 class MyJob1
@@ -78,6 +85,9 @@ class MyJob2
   end
 end
 ```
+
+If the previous step in a series was a batch of parallel jobs, then `previous_results` will be an array
+containing all the results from all the parallel jobs.
 
 Note: results are always in an array, even if there was only a single prior job run in series.
 
