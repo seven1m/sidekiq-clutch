@@ -64,3 +64,11 @@ class FailureHandlerJob
     log_job "#{self.class.name}#perform was called with #{status.inspect}"
   end
 end
+
+class JobWithoutMixin
+  include Sidekiq::Worker
+
+  def perform
+    log_job "#{self.class.name}#perform was called"
+  end
+end

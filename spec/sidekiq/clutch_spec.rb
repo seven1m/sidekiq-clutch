@@ -136,4 +136,10 @@ RSpec.describe Sidekiq::Clutch do
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
   end
+
+  it 'does not fail when calling a job without the Clutch::Worker mixin' do
+    subject.jobs << JobWithoutMixin
+    subject.engage
+    expect { Sidekiq::Batch.drain_all_and_run_callbacks }.not_to raise_error
+  end
 end
