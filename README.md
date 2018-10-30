@@ -1,5 +1,7 @@
 # Sidekiq::Clutch
 
+**WARNING: This is alpha level software right now. I'm still testing this and may change the API at any point.**
+
 Sidekiq::Clutch is the API I always wanted when working with Sidekiq Pro [Batches](https://github.com/mperham/sidekiq/wiki/Batches). So I built it!
 
 Features:
