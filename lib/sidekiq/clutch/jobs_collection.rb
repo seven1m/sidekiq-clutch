@@ -8,6 +8,10 @@ module Sidekiq
         @result_key_index = 0
       end
 
+      def empty?
+        @jobs.empty?
+      end
+
       def raw
         @jobs
       end

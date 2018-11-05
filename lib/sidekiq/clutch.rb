@@ -37,6 +37,18 @@ module Sidekiq
     end
 
     def engage
+      return if jobs.empty?
+      if batch.mutable?
+        setup_batch
+      else
+        batch.jobs do
+          @batch = Sidekiq::Batch.new
+          setup_batch
+        end
+      end
+    end
+
+    def setup_batch
       jobs_queue = jobs.raw.dup
       step = jobs_queue.shift
       return if step.nil?
@@ -54,12 +66,13 @@ module Sidekiq
       end
     end
 
-    def on_success(_status, options)
+    def on_success(status, options)
       if options['jobs'].empty?
         clean_up_result_keys(options['result_key'].sub(/-\d+$/, ''))
         return
       end
-      service = self.class.new(batch)
+      parent_batch = Sidekiq::Batch.new(status.parent_bid)
+      service = self.class.new(parent_batch)
       service.jobs.raw = options['jobs']
       service.current_result_key = options['result_key']
       service.engage
