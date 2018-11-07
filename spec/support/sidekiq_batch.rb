@@ -26,6 +26,10 @@ module Sidekiq
       yield
     end
 
+    def mutable?
+      true
+    end
+
     def on(event, klass, options)
       @callbacks.unshift [event, klass, options]
     end
@@ -70,6 +74,10 @@ module Sidekiq
       end
 
       attr_reader :failures
+
+      def parent_bid
+        Sidekiq::Batch.batches.keys.last # totally faking it
+      end
     end
   end
 end
