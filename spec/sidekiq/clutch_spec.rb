@@ -31,6 +31,16 @@ RSpec.describe Sidekiq::Clutch do
     )
   end
 
+  it 'does not attempt to look up results in Redis for jobs without a previous sibling' do
+    expect_any_instance_of(Sidekiq::Clutch::JobWrapper).not_to receive(:lookup_last_result)
+    subject.parallel do
+      subject.jobs << [Job2, 2, 'two']
+      subject.jobs << [Job2, 22, 222]
+    end
+    subject.engage
+    Sidekiq::Batch.drain_all_and_run_callbacks
+  end
+
   it 'can nest itself' do
     subject.jobs << [Job1, 1]
     subject.parallel do
