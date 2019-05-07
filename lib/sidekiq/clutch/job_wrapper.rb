@@ -21,9 +21,16 @@ module Sidekiq
 
       private
 
+      def lookup_last_result(key)
+        Sidekiq.redis do |client|
+          client.lrange(key, 0, -1)
+        end
+      end
+
       def assign_previous_results(job, last_result_key)
         return unless job.respond_to?(:previous_results=)
-        job.previous_results = Sidekiq.redis { |c| c.lrange(last_result_key, 0, -1) }.map do |r|
+        return job.previous_results = [] if last_result_key.nil?
+        job.previous_results = lookup_last_result(last_result_key).map do |r|
           JSON.parse(r, quirks_mode: true) # quirks_mode allows a bare string or number
         end
       end
