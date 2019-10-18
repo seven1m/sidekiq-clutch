@@ -128,6 +128,17 @@ RSpec.describe Sidekiq::Clutch do
     Sidekiq::Batch.drain_all_and_run_callbacks
   end
 
+  it 'supplies a wrapped class name to Sidekiq' do
+    subject.jobs << [Job2, 1, 2]
+    subject.engage
+    expect(Sidekiq::Worker.jobs.first).to include(
+      'class' => 'Sidekiq::Clutch::JobWrapper',
+      'queue' => 'low',
+      'wrapped' => 'Job2'
+    )
+    Sidekiq::Batch.drain_all_and_run_callbacks
+  end
+
   it 'does not execute the next step in series if a job failed' do
     expect(Job1).not_to receive(:new)
     subject.jobs << FailingJob
