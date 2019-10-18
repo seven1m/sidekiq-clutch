@@ -63,6 +63,27 @@ RSpec.describe Sidekiq::Clutch do
     )
   end
 
+  it 'treats each parallel block as a distinct step' do
+    subject.parallel do
+      subject.jobs << [Job1, 1]
+      subject.jobs << [Job1, 11]
+    end
+    subject.parallel do
+      subject.jobs << [Job2, 2, 'two']
+      subject.jobs << [Job2, 22, 222]
+    end
+    subject.engage
+    Sidekiq::Batch.drain_all_and_run_callbacks
+    expect(log_results).to eq(
+      [
+        'Job1#perform was called with 1',
+        'Job1#perform was called with 11',
+        'Job2#perform was called with [2, "two"] and result ["result from Job1", "result from Job1"]',
+        'Job2#perform was called with [22, 222] and result ["result from Job1", "result from Job1"]'
+      ]
+    )
+  end
+
   it 'accepts a bare job class with no args' do
     subject.jobs << NestedJob
     subject.engage

@@ -10,18 +10,18 @@ module Sidekiq
       @batch = batch || Sidekiq::Batch.new
     end
 
-    attr_reader :batch, :queue
+    attr_reader :batch, :queue, :parallel_key
 
     attr_accessor :current_result_key, :on_failure
 
     def parallel
-      @parallel = true
+      @parallel_key = SecureRandom.uuid
       yield
-      @parallel = false
+      @parallel_key = nil
     end
 
     def parallel?
-      @parallel == true
+      !!@parallel_key
     end
 
     def jobs
