@@ -22,7 +22,7 @@ module Sidekiq
 
       def <<((klass, *params))
         if @service.parallel?
-          @jobs << { 'parallel' => [], 'result_key' => next_result_key } unless @jobs.last && @jobs.last['parallel']
+          @jobs << new_parallel_step unless continue_existing_parallel_step?
           @jobs.last['parallel'] << [klass.name, params]
         else
           @jobs << { 'series' => [klass.name, params], 'result_key' => next_result_key }
@@ -32,6 +32,16 @@ module Sidekiq
       def next_result_key
         @result_key_index += 1
         "#{@result_key_prefix}-#{@result_key_index}"
+      end
+
+      private
+
+      def new_parallel_step
+        { 'parallel' => [], 'result_key' => next_result_key, 'parallel_key' => @service.parallel_key }
+      end
+
+      def continue_existing_parallel_step?
+        @jobs.last && @jobs.last['parallel_key'] == @service.parallel_key
       end
     end
   end
