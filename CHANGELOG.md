@@ -1,3 +1,7 @@
+# 1.1.0 - Feb 5, 2020
+
+* FEAT: use Sidekiq's wrapped option for improved logging
+
 # 1.0.1 - May 7, 2019
 
 * FIX: don't look up previous results in Redis if the key is nil
