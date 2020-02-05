@@ -1,3 +1,7 @@
+# 2.0.0 - Feb 5, 2020
+
+* BREAKING: Treat each parallel block as a distinct step
+
 # 1.1.0 - Feb 5, 2020
 
 * FEAT: use Sidekiq's wrapped option for improved logging
