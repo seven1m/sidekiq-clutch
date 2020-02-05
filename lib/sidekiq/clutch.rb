@@ -102,6 +102,7 @@ module Sidekiq
       options = {
         'class'     => JobWrapper,
         'queue'     => queue || job_options['queue'],
+        'wrapped'   => klass,
         'args'      => [batch.bid, klass, params, current_result_key, result_key],
         'retry'     => job_options['retry'],
         'backtrace' => job_options['backtrace']
