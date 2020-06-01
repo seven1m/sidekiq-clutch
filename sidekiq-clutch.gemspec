@@ -15,7 +15,7 @@ Gem::Specification.new do |spec|
   spec.license       = 'MIT'
 
   spec.files         = Dir.chdir(File.expand_path(__dir__)) do
-    `git ls-files`.split("\n").reject { |f| f.match(%r{^(test|spec|features)/}) }
+    `git ls-files`.split("\n").reject { |f| f.match(%r{^(spec|\.ruby-version)}) }
   end
   spec.require_paths = ['lib']
 
