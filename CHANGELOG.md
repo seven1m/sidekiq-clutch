@@ -1,3 +1,8 @@
+# 2.0.1 - Jun 1, 2020
+
+* CHORE: Bump development dependency versions
+* CHORE: Add .ruby-version file for easier development
+
 # 2.0.0 - Feb 5, 2020
 
 * BREAKING: Treat each parallel block as a distinct step
