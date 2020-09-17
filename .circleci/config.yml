@@ -7,5 +7,6 @@ jobs:
     - image: redis:3.2
     steps:
     - checkout
+    - run: gem install bundler
     - run: bundle install
     - run: bundle exec rspec
