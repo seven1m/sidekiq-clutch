@@ -54,7 +54,8 @@ module Sidekiq
       return if step.nil?
       batch.callback_queue = queue if queue
       batch.on(:success, Sidekiq::Clutch, 'jobs' => jobs_queue.dup, 'result_key' => step['result_key'])
-      batch.on(:complete, Sidekiq::Clutch, 'on_failure' => on_failure&.name)
+      on_failure_name = on_failure&.name
+      batch.on(:complete, Sidekiq::Clutch, 'on_failure' => on_failure_name) if on_failure_name
       batch.jobs do
         if step['series']
           series_step(step)
@@ -112,8 +113,11 @@ module Sidekiq
 
     def clean_up_result_keys(key_base)
       Sidekiq.redis do |redis|
-        redis.keys(key_base + '*').each do |key|
-          redis.del(key)
+        result_key_index = 1
+        loop do
+          result = redis.del("#{key_base}-#{result_key_index}")
+          result_key_index += 1
+          break if result == 0
         end
       end
     end
