@@ -1,3 +1,8 @@
+# 2.0.2 - Sep 24, 2020
+
+* PERF: Delete keys based on known values, instead of a glob
+* PERF: Don't bother enqueing a `:complete` callback if no `on_failure` is specified
+
 # 2.0.1 - Jun 1, 2020
 
 * CHORE: Bump development dependency versions
