@@ -113,8 +113,11 @@ module Sidekiq
 
     def clean_up_result_keys(key_base)
       Sidekiq.redis do |redis|
-        redis.keys(key_base + '*').each do |key|
-          redis.del(key)
+        result_key_index = 1
+        loop do
+          result = redis.del("#{key_base}-#{result_key_index}")
+          result_key_index += 1
+          break if result == 0
         end
       end
     end
