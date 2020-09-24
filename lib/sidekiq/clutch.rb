@@ -54,7 +54,8 @@ module Sidekiq
       return if step.nil?
       batch.callback_queue = queue if queue
       batch.on(:success, Sidekiq::Clutch, 'jobs' => jobs_queue.dup, 'result_key' => step['result_key'])
-      batch.on(:complete, Sidekiq::Clutch, 'on_failure' => on_failure&.name)
+      on_failure_name = on_failure&.name
+      batch.on(:complete, Sidekiq::Clutch, 'on_failure' => on_failure_name) if on_failure_name
       batch.jobs do
         if step['series']
           series_step(step)
