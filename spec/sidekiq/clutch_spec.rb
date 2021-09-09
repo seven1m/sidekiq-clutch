@@ -190,4 +190,22 @@ RSpec.describe Sidekiq::Clutch do
     subject.jobs << [Job1, 'x' * 1000]
     expect { subject.engage }.to raise_error(Sidekiq::Clutch::TooMuchData)
   end
+
+  it 'sets the "linger" value of a Batch to 10 minutes' do
+    subject.jobs << [Job1, 1]
+    expect(subject.batch.linger).to eq(600)
+
+    subject.clear
+    subject.jobs << [Job1, 1]
+    subject.parallel do
+      subject.jobs << [Job1, 1]
+      subject.jobs << [Job1, 1]
+    end
+    subject.jobs << [Job2, 2, 3]
+    expect(subject.batch).to receive(:mutable?).and_return(false)
+    subject.engage
+    Sidekiq::Batch.drain_all_and_run_callbacks
+
+    expect(subject.batch.linger).to eq(600)
+  end
 end

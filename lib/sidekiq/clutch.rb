@@ -11,16 +11,22 @@ module Sidekiq
     # This is an attempt to catch that problem during creation.
     DEFAULT_MAX_SIZE_IN_BYTES = 10 * 1024 * 1024 # 10 MiB
 
+    # By default, Sidekiq keeps completed Batches around for a full day. Clutch batches can be quite
+    # big (see above comment), and there's not much use in keeping the batch around once it's done.
+    BATCH_LINGER_IN_SECONDS = 600 # 10 minutes
+
     class TooMuchData < StandardError; end
 
     def initialize(batch = nil, max_size_in_bytes: DEFAULT_MAX_SIZE_IN_BYTES)
       @batch = batch || Sidekiq::Batch.new
+      @linger = BATCH_LINGER_IN_SECONDS
+      set_linger(@batch)
       @max_size_in_bytes = max_size_in_bytes
     end
 
     attr_reader :batch, :queue, :parallel_key
 
-    attr_accessor :current_result_key, :on_failure, :max_size_in_bytes
+    attr_accessor :current_result_key, :on_failure, :max_size_in_bytes, :linger
 
     def parallel
       @parallel_key = SecureRandom.uuid
@@ -51,6 +57,7 @@ module Sidekiq
       else
         batch.jobs do
           @batch = Sidekiq::Batch.new
+          set_linger(@batch)
           setup_batch
         end
       end
@@ -85,6 +92,7 @@ module Sidekiq
         return
       end
       parent_batch = Sidekiq::Batch.new(status.parent_bid)
+      set_linger(parent_batch)
       service = self.class.new(parent_batch)
       service.jobs.raw = options['jobs']
       service.current_result_key = options['result_key']
@@ -98,6 +106,12 @@ module Sidekiq
     end
 
     private
+
+    def set_linger(batch)
+      # This is only available in Sidekiq Pro 5.2.1 and newer
+      return unless batch.respond_to?(:linger=)
+      batch.linger = @linger
+    end
 
     def series_step(step)
       (klass, params) = step['series']

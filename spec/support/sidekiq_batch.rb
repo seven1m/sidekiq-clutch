@@ -20,7 +20,7 @@ module Sidekiq
     end
 
     attr_reader :bid, :callbacks
-    attr_accessor :callback_queue
+    attr_accessor :callback_queue, :linger
 
     def jobs
       yield
