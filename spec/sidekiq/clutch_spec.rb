@@ -184,4 +184,10 @@ RSpec.describe Sidekiq::Clutch do
     subject.engage
     expect { Sidekiq::Batch.drain_all_and_run_callbacks }.not_to raise_error
   end
+
+  it 'raises an error when total bytes of all jobs exceeds max_size_in_bytes' do
+    subject.max_size_in_bytes = 1000
+    subject.jobs << [Job1, 'x' * 1000]
+    expect { subject.engage }.to raise_error(Sidekiq::Clutch::TooMuchData)
+  end
 end

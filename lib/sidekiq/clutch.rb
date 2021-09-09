@@ -6,13 +6,21 @@ require 'sidekiq/clutch/job_wrapper'
 
 module Sidekiq
   class Clutch
-    def initialize(batch = nil)
+    # This is the maximum data consumed by the entire run -- all job classes and arguments
+    # Sidekiq::Clutch is known to use insane amounts of Redis memory when too many jobs are added.
+    # This is an attempt to catch that problem during creation.
+    DEFAULT_MAX_SIZE_IN_BYTES = 10 * 1024 * 1024 # 10 MiB
+
+    class TooMuchData < StandardError; end
+
+    def initialize(batch = nil, max_size_in_bytes: DEFAULT_MAX_SIZE_IN_BYTES)
       @batch = batch || Sidekiq::Batch.new
+      @max_size_in_bytes = max_size_in_bytes
     end
 
     attr_reader :batch, :queue, :parallel_key
 
-    attr_accessor :current_result_key, :on_failure
+    attr_accessor :current_result_key, :on_failure, :max_size_in_bytes
 
     def parallel
       @parallel_key = SecureRandom.uuid
@@ -50,6 +58,10 @@ module Sidekiq
 
     def setup_batch
       jobs_queue = jobs.raw.dup
+      data_size = jobs_queue.to_json.size
+      if data_size > max_size_in_bytes
+        raise TooMuchData, "This run of Sidekiq::Clutch is #{data_size} bytes! The max is set to #{max_size_in_bytes} bytes."
+      end
       step = jobs_queue.shift
       return if step.nil?
       batch.callback_queue = queue if queue
