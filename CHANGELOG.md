@@ -2,9 +2,9 @@
 
 * PERF: Don't pass step data in success callback to every batch
 
-NOTE: This changes the the structure of arguments passed to Batch callbacks, though
-we also handle the way of doing it (v2.0.2 and before) so it shouldn't affect any
-in-progress batches you may have running.
+NOTE: This changes the structure of arguments passed to Batch callbacks, though we
+also handle the old way of doing it (v2.0.2 and before) so it shouldn't affect
+any in-progress batches you may have running.
 
 # 2.0.2 - Sep 24, 2020
 
