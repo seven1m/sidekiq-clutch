@@ -72,6 +72,8 @@ module Sidekiq
     end
 
     def on_success(status, options)
+      return on_success_legacy(status, options) if options['jobs'] # old style of passing job data
+
       # NOTE: This is a brand new instance of Sidekiq::Clutch that Sidekiq instantiates,
       # so we need to set @key_base again.
       @key_base = options['key_base']
@@ -94,6 +96,19 @@ module Sidekiq
     end
 
     private
+
+    def on_success_legacy(status, options)
+      if options['jobs'].empty?
+        @key_base = options['result_key'].sub(/-\d+$/, '')
+        clean_up_result_keys
+        return
+      end
+      parent_batch = Sidekiq::Batch.new(status.parent_bid)
+      service = self.class.new(parent_batch)
+      service.jobs.raw = options['jobs']
+      service.current_result_key = options['result_key']
+      service.engage
+    end
 
     def key_base
       @key_base ||= SecureRandom.uuid
