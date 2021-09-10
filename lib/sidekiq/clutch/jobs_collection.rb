@@ -4,7 +4,6 @@ module Sidekiq
       def initialize(service)
         @service = service
         @jobs = []
-        @result_key_prefix = SecureRandom.uuid
         @result_key_index = 0
       end
 
@@ -25,19 +24,18 @@ module Sidekiq
           @jobs << new_parallel_step unless continue_existing_parallel_step?
           @jobs.last['parallel'] << [klass.name, params]
         else
-          @jobs << { 'series' => [klass.name, params], 'result_key' => next_result_key }
+          @jobs << { 'series' => [klass.name, params], 'result_key_index' => next_result_key_index }
         end
       end
 
-      def next_result_key
+      def next_result_key_index
         @result_key_index += 1
-        "#{@result_key_prefix}-#{@result_key_index}"
       end
 
       private
 
       def new_parallel_step
-        { 'parallel' => [], 'result_key' => next_result_key, 'parallel_key' => @service.parallel_key }
+        { 'parallel' => [], 'result_key_index' => next_result_key_index, 'parallel_key' => @service.parallel_key }
       end
 
       def continue_existing_parallel_step?
