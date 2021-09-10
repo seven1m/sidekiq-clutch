@@ -91,13 +91,21 @@ RSpec.describe Sidekiq::Clutch do
     expect(log_results).not_to be_empty
   end
 
+  it 'cleans up jobs key' do
+    subject.jobs << [Job1, 1]
+    subject.engage
+    Sidekiq::Batch.drain_all_and_run_callbacks
+    key = subject.send(:jobs_key)
+    expect(Sidekiq.redis { |c| c.exists?(key) }).to eq(false), "#{key} exists"
+  end
+
   it 'cleans up result keys' do
     subject.jobs << [Job1, 1]
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
-    keys = subject.jobs.raw.map { |j| j['result_key'] }
+    keys = subject.jobs.raw.map { |j| "#{j['key_base']}-#{j['result_key_index']}" }
     keys.map do |key|
-      expect(Sidekiq.redis { |c| c.exists(key) }).to eq(false), "#{key} exists"
+      expect(Sidekiq.redis { |c| c.exists?(key) }).to eq(false), "#{key} exists"
     end
   end
 

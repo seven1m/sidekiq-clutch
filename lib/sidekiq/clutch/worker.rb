@@ -15,7 +15,7 @@ module Sidekiq
         Sidekiq.redis do |redis|
           redis.multi do |multi|
             multi.rpush(current_result_key, result.to_json)
-            multi.expire(current_result_key, RESULT_KEY_EXPIRATION_DURATION)
+            multi.expire(current_result_key, TEMPORARY_KEY_EXPIRATION_DURATION)
           end
         end
       end
