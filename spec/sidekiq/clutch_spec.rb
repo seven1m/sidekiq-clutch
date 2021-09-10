@@ -184,4 +184,17 @@ RSpec.describe Sidekiq::Clutch do
     subject.engage
     expect { Sidekiq::Batch.drain_all_and_run_callbacks }.not_to raise_error
   end
+
+  it 'does not allow more than max steps jobs' do
+    subject.max_steps = 10
+    9.times do
+      subject.jobs << Job1
+    end
+    subject.parallel do
+      5.times do
+        subject.jobs << [Job2, 1, 2]
+      end
+    end
+    expect { subject.jobs << Job1 }.to raise_error Sidekiq::Clutch::TooManySteps
+  end
 end

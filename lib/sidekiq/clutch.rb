@@ -6,13 +6,22 @@ require 'sidekiq/clutch/job_wrapper'
 
 module Sidekiq
   class Clutch
-    def initialize(batch = nil)
+    # This is the maximum number of steps in the collection.
+    # A serial job is one step and a set of parallel jobs is one step.
+    # Sidekiq::Clutch is known to use insane amounts of Redis memory when too many
+    # steps are added. This is an attempt to catch that problem during creation.
+    DEFAULT_MAX_STEPS = 200
+
+    class TooManySteps < StandardError; end
+
+    def initialize(batch = nil, max_steps: DEFAULT_MAX_STEPS)
       @batch = batch || Sidekiq::Batch.new
+      @max_steps = max_steps
     end
 
     attr_reader :batch, :queue, :parallel_key
 
-    attr_accessor :current_result_key, :on_failure
+    attr_accessor :current_result_key, :on_failure, :max_steps
 
     def parallel
       @parallel_key = SecureRandom.uuid
