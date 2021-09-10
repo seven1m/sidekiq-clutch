@@ -57,7 +57,7 @@ module Sidekiq
       set_jobs_data_in_redis(jobs_queue)
       return if step.nil?
       batch.callback_queue = queue if queue
-      batch.on(:success, Sidekiq::Clutch, 'key_base' => key_base, 'result_key_index' => step['result_key_index'])
+      batch.on(:success, Sidekiq::Clutch, 'key_base' => key_base, 'result_key_index' => result_key_index(step))
       on_failure_name = on_failure&.name
       batch.on(:complete, Sidekiq::Clutch, 'on_failure' => on_failure_name) if on_failure_name
       batch.jobs do
@@ -72,7 +72,10 @@ module Sidekiq
     end
 
     def on_success(status, options)
-      return on_success_legacy(status, options) if options['jobs'] # old style of passing job data
+      return on_success_legacy(status, options) if options['jobs']
+
+      raise 'invariant: key_base is missing!' unless options['key_base']
+      raise 'invariant: result_key_index is missing!' unless options['result_key_index']
 
       # NOTE: This is a brand new instance of Sidekiq::Clutch that Sidekiq instantiates,
       # so we need to set @key_base again.
@@ -97,9 +100,10 @@ module Sidekiq
 
     private
 
+    # accept old style of passing job data, will be removed in 3.0
     def on_success_legacy(status, options)
+      @key_base = options['result_key'].sub(/-\d+$/, '')
       if options['jobs'].empty?
-        @key_base = options['result_key'].sub(/-\d+$/, '')
         clean_up_result_keys
         return
       end
@@ -129,12 +133,22 @@ module Sidekiq
 
     def series_step(step)
       (klass, params) = step['series']
-      enqueue_job(klass, params, step['result_key_index'])
+      enqueue_job(klass, params, result_key_index(step))
     end
 
     def parallel_step(step)
       step['parallel'].each do |(klass, params)|
-        enqueue_job(klass, params, step['result_key_index'])
+        enqueue_job(klass, params, result_key_index(step))
+      end
+    end
+
+    def result_key_index(step)
+      if step['result_key_index']
+        step['result_key_index']
+      elsif step['result_key'] # legacy style, will be removed in 3.0
+        step['result_key'].split('-').last.to_i
+      else
+        raise "invariant: expected result_key_index passed in step; got: #{step.inspect}"
       end
     end
 
