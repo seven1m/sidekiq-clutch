@@ -1,3 +1,7 @@
+# 2.1.1 - Sep 14, 2021
+
+* FIX: Call correct clean up method when legacy jobs are finished
+
 # 2.1.0 - Sep 10, 2021
 
 * PERF: Don't pass step data in success callback to every batch
