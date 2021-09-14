@@ -104,7 +104,7 @@ module Sidekiq
     def on_success_legacy(status, options)
       @key_base = options['result_key'].sub(/-\d+$/, '')
       if options['jobs'].empty?
-        clean_up_result_keys
+        clean_up_temporary_keys
         return
       end
       parent_batch = Sidekiq::Batch.new(status.parent_bid)

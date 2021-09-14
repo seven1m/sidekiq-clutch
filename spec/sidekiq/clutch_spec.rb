@@ -225,5 +225,13 @@ RSpec.describe Sidekiq::Clutch do
         'Job3#perform was called with [3, 4, 5] and result ["result from Job2", "result from Job2"]'
       ]
     )
+    subject.on_success(
+      status,
+      {
+        'jobs' => [],
+        'result_key' => 'b2c93c46-3a2f-4ee7-9b07-bed2872b2ac9-1',
+      }
+    )
+    Sidekiq::Batch.drain_all_and_run_callbacks
   end
 end
