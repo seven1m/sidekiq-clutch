@@ -1,6 +1,8 @@
-# unreleased
+# 3.0.0 - Feb 19, 2025
 
-* CHORE: Fix specs to run with Sidekiq 7
+* CHORE: Remove old-style job handling code
+  This would only be breaking if you have ongoing batches
+  that haven't yet completed (unlikely).
 
 # 2.1.2 - Feb 18, 2025
 
