@@ -1,3 +1,7 @@
+# unreleased
+
+* CHORE: Fix specs to run with Sidekiq 7
+
 # 2.1.2 - Feb 18, 2025
 
 * FIX: Don't leave orphaned redis keys laying around
