@@ -1,3 +1,8 @@
+# 2.1.2 - Feb 18, 2025
+
+* FIX: Don't leave orphaned redis keys laying around
+* CHANGE: Prefix redis keys for easier identification
+
 # 2.1.1 - Sep 14, 2021
 
 * FIX: Call correct clean up method when legacy jobs are finished
