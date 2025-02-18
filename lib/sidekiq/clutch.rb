@@ -14,8 +14,8 @@ module Sidekiq
     end
 
     attr_reader :batch, :queue, :parallel_key
-
     attr_accessor :current_result_key, :on_failure
+    attr_writer :key_base
 
     def parallel
       @parallel_key = SecureRandom.uuid
@@ -87,6 +87,7 @@ module Sidekiq
       end
       parent_batch = Sidekiq::Batch.new(status.parent_bid)
       service = self.class.new(parent_batch)
+      service.key_base = @key_base
       service.jobs.raw = remaining_jobs
       service.current_result_key = "#{key_base}-#{options['result_key_index']}"
       service.engage

@@ -84,6 +84,21 @@ RSpec.describe Sidekiq::Clutch do
     )
   end
 
+  it 'does not leave old redis keys behind' do
+    Sidekiq.redis { |c| c.flushall }
+    subject.parallel do
+      subject.jobs << [Job1, 1]
+      subject.jobs << [Job1, 11]
+    end
+    subject.parallel do
+      subject.jobs << [Job2, 2, 'two']
+      subject.jobs << [Job2, 22, 222]
+    end
+    subject.engage
+    Sidekiq::Batch.drain_all_and_run_callbacks
+    expect(Sidekiq.redis { |c| c.keys }).to eq(['log_results'])
+  end
+
   it 'accepts a bare job class with no args' do
     subject.jobs << NestedJob
     subject.engage
