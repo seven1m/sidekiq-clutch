@@ -21,7 +21,6 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'sidekiq', '>= 5.0.0'
 
-  spec.add_development_dependency 'bundler', '~> 2.2.4'
   spec.add_development_dependency 'rake', '~> 13.0.1'
   spec.add_development_dependency 'rspec', '~> 3.9.0'
 end

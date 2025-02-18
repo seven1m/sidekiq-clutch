@@ -14,8 +14,8 @@ module Sidekiq
     end
 
     attr_reader :batch, :queue, :parallel_key
-
     attr_accessor :current_result_key, :on_failure
+    attr_writer :key_base
 
     def parallel
       @parallel_key = SecureRandom.uuid
@@ -87,8 +87,9 @@ module Sidekiq
       end
       parent_batch = Sidekiq::Batch.new(status.parent_bid)
       service = self.class.new(parent_batch)
+      service.key_base = @key_base
       service.jobs.raw = remaining_jobs
-      service.current_result_key = "#{key_base}-#{options['result_key_index']}"
+      service.current_result_key = "#{key_base}:result-#{options['result_key_index']}"
       service.engage
     end
 
@@ -115,11 +116,11 @@ module Sidekiq
     end
 
     def key_base
-      @key_base ||= SecureRandom.uuid
+      @key_base ||= "clutch:#{SecureRandom.uuid}"
     end
 
     def jobs_key
-      "#{key_base}-jobs"
+      "#{key_base}:jobs"
     end
 
     def set_jobs_data_in_redis(data)
@@ -154,7 +155,7 @@ module Sidekiq
 
     def enqueue_job(klass, params, result_key_index)
       job_options = Object.const_get(klass).sidekiq_options
-      result_key = "#{key_base}-#{result_key_index}"
+      result_key = "#{key_base}:result-#{result_key_index}"
       options = {
         'class'     => JobWrapper,
         'queue'     => queue || job_options['queue'],
@@ -171,7 +172,7 @@ module Sidekiq
         redis.del(jobs_key)
         result_key_index = 1
         loop do
-          result = redis.del("#{key_base}-#{result_key_index}")
+          result = redis.del("#{key_base}:result-#{result_key_index}")
           result_key_index += 1
           break if result == 0
         end
