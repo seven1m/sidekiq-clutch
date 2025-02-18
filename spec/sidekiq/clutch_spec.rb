@@ -96,7 +96,7 @@ RSpec.describe Sidekiq::Clutch do
     end
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
-    expect(Sidekiq.redis { |c| c.keys }).to eq(['log_results'])
+    expect(Sidekiq.redis { |c| c.keys('*') }).to eq(['log_results'])
   end
 
   it 'accepts a bare job class with no args' do
@@ -111,7 +111,7 @@ RSpec.describe Sidekiq::Clutch do
     subject.engage
     Sidekiq::Batch.drain_all_and_run_callbacks
     key = subject.send(:jobs_key)
-    expect(Sidekiq.redis { |c| c.exists?(key) }).to eq(false), "#{key} exists"
+    expect(Sidekiq.redis { |c| c.exists(key) }).to eq(0), "#{key} exists"
   end
 
   it 'cleans up result keys' do
@@ -120,7 +120,7 @@ RSpec.describe Sidekiq::Clutch do
     Sidekiq::Batch.drain_all_and_run_callbacks
     keys = subject.jobs.raw.map { |j| "#{j['key_base']}-#{j['result_key_index']}" }
     keys.map do |key|
-      expect(Sidekiq.redis { |c| c.exists?(key) }).to eq(false), "#{key} exists"
+      expect(Sidekiq.redis { |c| c.exists(key) }).to eq(0), "#{key} exists"
     end
   end
 

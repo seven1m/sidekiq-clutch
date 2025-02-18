@@ -39,7 +39,7 @@ module Sidekiq
         size = batch.callbacks.size
         size.times do
           (event, klass, options) = batch.callbacks.shift
-          CallbackWrapper.perform_async(event, klass, options, failures)
+          CallbackWrapper.perform_async(event.to_s, klass.to_s, options, failures)
         end
       end
     end
