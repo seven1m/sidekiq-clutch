@@ -72,8 +72,6 @@ module Sidekiq
     end
 
     def on_success(status, options)
-      return on_success_legacy(status, options) if options['jobs']
-
       raise 'invariant: key_base is missing!' unless options['key_base']
       raise 'invariant: result_key_index is missing!' unless options['result_key_index']
 
@@ -100,20 +98,6 @@ module Sidekiq
     end
 
     private
-
-    # accept old style of passing job data, will be removed in 3.0
-    def on_success_legacy(status, options)
-      @key_base = options['result_key'].sub(/-\d+$/, '')
-      if options['jobs'].empty?
-        clean_up_temporary_keys
-        return
-      end
-      parent_batch = Sidekiq::Batch.new(status.parent_bid)
-      service = self.class.new(parent_batch)
-      service.jobs.raw = options['jobs']
-      service.current_result_key = options['result_key']
-      service.engage
-    end
 
     def key_base
       @key_base ||= "clutch:#{SecureRandom.uuid}"
@@ -146,8 +130,6 @@ module Sidekiq
     def result_key_index(step)
       if step['result_key_index']
         step['result_key_index']
-      elsif step['result_key'] # legacy style, will be removed in 3.0
-        step['result_key'].split('-').last.to_i
       else
         raise "invariant: expected result_key_index passed in step; got: #{step.inspect}"
       end

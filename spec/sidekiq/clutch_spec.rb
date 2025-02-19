@@ -207,46 +207,4 @@ RSpec.describe Sidekiq::Clutch do
     subject.engage
     expect { Sidekiq::Batch.drain_all_and_run_callbacks }.not_to raise_error
   end
-
-  it 'is backwards-compatible with old form of step passing between batches' do
-    status = instance_double('Sidekiq::Batch::Status', parent_bid: subject.batch.bid)
-    subject.on_success(
-      status,
-      {
-        'jobs' => [
-          {
-            'series' => ['Job1', 1],
-            'result_key' => 'b2c93c46-3a2f-4ee7-9b07-bed2872b2ac9-1',
-          },
-          {
-            'parallel' => [['Job2', [2, 'two']], ['Job2', [22, 222]]],
-            'result_key' => 'b2c93c46-3a2f-4ee7-9b07-bed2872b2ac9-2',
-            'parallel_key' => '5a429007-54b7-43e6-809e-da444a680c63',
-          },
-          {
-            'series' => ['Job3', [3, 4, 5]],
-            'result_key' => 'b2c93c46-3a2f-4ee7-9b07-bed2872b2ac9-3',
-          },
-        ],
-        'result_key' => 'b2c93c46-3a2f-4ee7-9b07-bed2872b2ac9-1',
-      }
-    )
-    Sidekiq::Batch.drain_all_and_run_callbacks
-    expect(log_results).to eq(
-      [
-        'Job1#perform was called with 1',
-        'Job2#perform was called with [2, "two"] and result ["result from Job1"]',
-        'Job2#perform was called with [22, 222] and result ["result from Job1"]',
-        'Job3#perform was called with [3, 4, 5] and result ["result from Job2", "result from Job2"]'
-      ]
-    )
-    subject.on_success(
-      status,
-      {
-        'jobs' => [],
-        'result_key' => 'b2c93c46-3a2f-4ee7-9b07-bed2872b2ac9-1',
-      }
-    )
-    Sidekiq::Batch.drain_all_and_run_callbacks
-  end
 end
